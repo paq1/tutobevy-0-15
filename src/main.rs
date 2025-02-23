@@ -18,9 +18,13 @@ struct Position {
     y: f32,
 }
 
+#[derive(Resource)]
+struct GreetTimer(Timer);
+
 struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
+        app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)));
         app.add_systems(Startup, add_people);
         app.add_systems(Update, (helloworld, (update_people, greet_people).chain()));
     }
@@ -36,10 +40,15 @@ fn main() {
         .run();
 }
 
-// // Système d'initialisation
-// fn setup(mut commands: Commands) {
-//     commands.spawn(Camera2d::default());
-// }
+fn greet_people(time: Res<Time>, mut timer: ResMut<GreetTimer>, query: Query<&Name, With<Player>>) {
+    // update our timer with the time elapsed since the last update
+    // if that caused the timer to finish, we say hello to everyone
+    if timer.0.tick(time.delta()).just_finished() {
+        for name in &query {
+            println!("hello {}!", name.0);
+        }
+    }
+}
 
 fn update_people(mut query: Query<&mut Name, With<Player>>) {
     for mut name in &mut query {
@@ -54,12 +63,6 @@ fn add_people(mut commands: Commands) {
     commands.spawn((Player, Name("A".to_string())));
     commands.spawn((Player, Name("B".to_string())));
     commands.spawn((Player, Name("C".to_string())));
-}
-
-fn greet_people(query: Query<&Name, With<Player>>) {
-    for name in &query {
-        println!("hello {}!", name.0);
-    }
 }
 
 fn helloworld() {
